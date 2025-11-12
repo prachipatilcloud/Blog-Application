@@ -16,12 +16,14 @@ import cookieParser from 'cookie-parser';
 app.use(cookieParser());
 
 app.use(cors());
-app.use(bodyParser.json({ extended: true }));
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use('/api', Router);
 
-app.use(express.json({ limit: '50mb' }));  // Increase JSON payload size limit
-app.use(express.urlencoded({ limit: '50mb', extended: true }));  // Increase URL-encoded payload limit
+// Increase payload size limits for image uploads
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(bodyParser.json({ limit: '50mb', extended: true }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+
+app.use('/api', Router);
 
 
 const PORT = 8000;

@@ -16,14 +16,7 @@ const storage = new GridFsStorage({
     options: { useNewUrlParser: true, useUnifiedTopology: true },
     file: (request, file) => {
         return new Promise((resolve, reject) => {
-            const match = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-
-        
-
-        // if (match.indexOf(file.mimetype) === -1) {
-        //     return `${Date.now()}-blogApp-${file.originalname}`;
-             
-        // }
+            const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
 
         if (!allowedTypes.includes(file.mimetype)) {
             return reject(new Error('Invalid file type. Only PNG, JPEG, JPG, and WEBP allowed.'));
@@ -48,7 +41,10 @@ const storage = new GridFsStorage({
 
 const upload = multer({
     storage,
-    limits: { fileSize: 100 * 1024 * 1024 }, // Limit file size to 10MB
+    limits: { 
+        fileSize: 50 * 1024 * 1024, // Limit file size to 50MB
+        fieldSize: 50 * 1024 * 1024  // Limit field size to 50MB
+    },
     fileFilter: (req, file, cb) => {
         const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
         if (!allowedTypes.includes(file.mimetype)) {

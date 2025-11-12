@@ -221,17 +221,49 @@ const CreatePost = () => {
     const navigate = useNavigate();
     const { account } = useContext(DataContext);
 
-    // Function to convert image to Base64 and store in state
+    // Function to compress and convert image to Base64
     const convertToBase64 = (file) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onloadend = () => {
-            setPreview(reader.result);
+        // Check file size (limit to 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            alert("Image size should be less than 10MB. Please choose a smaller image.");
+            return;
+        }
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = () => {
+            // Calculate new dimensions (max width: 1200px, maintain aspect ratio)
+            const maxWidth = 1200;
+            const maxHeight = 800;
+            let { width, height } = img;
+            
+            if (width > maxWidth) {
+                height = (height * maxWidth) / width;
+                width = maxWidth;
+            }
+            
+            if (height > maxHeight) {
+                width = (width * maxHeight) / height;
+                height = maxHeight;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Draw and compress image
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8); // 80% quality
+            
+            setPreview(compressedDataUrl);
             setPost(prevPost => ({
                 ...prevPost,
-                picture: reader.result
+                picture: compressedDataUrl
             }));
         };
+        
+        img.src = URL.createObjectURL(file);
     };
 
     const handleFileChange = (e) => {
