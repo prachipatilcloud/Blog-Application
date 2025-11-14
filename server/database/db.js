@@ -1,17 +1,23 @@
 import mongoose from "mongoose";
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 export const Connection = async() => {
-    const URL = 'mongodb://127.0.0.1:27017/blogApp';
+    const URL = process.env.MONGODB_URI;
+    
+    if (!URL) {
+        console.error('MONGODB_URI is not defined in environment variables');
+        process.exit(1);
+    }
+    
     try {
-        await mongoose.connect(URL,{
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
+        await mongoose.connect(URL);
         console.log('Database connected successfully');
         
     } catch (error) {
         console.log('Error while connecting database', error);
-        
+        process.exit(1);
     }
 }
 
