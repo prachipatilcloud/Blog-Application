@@ -17,6 +17,15 @@ app.use(cookieParser());
 
 app.use(cors());
 
+// Basic health check route
+app.get('/', (req, res) => {
+    res.json({ 
+        message: 'Blog Application Backend is running!', 
+        status: 'success',
+        timestamp: new Date().toISOString()
+    });
+});
+
 // Increase payload size limits for image uploads
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -25,8 +34,7 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 app.use('/api', Router);
 
-
-const PORT = 8000;
+const PORT = process.env.PORT || 8000;
 
 
 app.listen(PORT, () => console.log(`Server started on http://localhost:${PORT}`));
