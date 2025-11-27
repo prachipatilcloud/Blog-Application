@@ -35,12 +35,19 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use('/api', Router);
 
 const PORT = process.env.PORT || 8000;
+const startServer = async () => {
+  try {
+    await Connection();  // Wait for MongoDB connection
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+  }
+};
 
-
-app.listen(PORT, () => console.log(`Server started on http://localhost:${PORT}`));
+startServer();
 
 // const USERNAME = process.env.DB_USERNAME;
 // const PASSWORD = process.env.DB_PASSWORD;
 
-
-Connection();
