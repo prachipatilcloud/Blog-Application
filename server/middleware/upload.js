@@ -1,41 +1,21 @@
 
 import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-import { GridFsStorage } from 'multer-gridfs-storage';
-import dotenv from 'dotenv';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-dotenv.config();
-
-// const username = process.env.DB_USERNAME;
-// const password = process.env.DB_PASSWORD;
-
-
-
-const storage = new GridFsStorage({
-    url: 'mongodb://127.0.0.1:27017/blogApp',
-    options: { useNewUrlParser: true, useUnifiedTopology: true },
-    file: (request, file) => {
-        return new Promise((resolve, reject) => {
-            const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-
-        if (!allowedTypes.includes(file.mimetype)) {
-            return reject(new Error('Invalid file type. Only PNG, JPEG, JPG, and WEBP allowed.'));
-        }
-
-        resolve({
-            bucketName: 'fs', // GridFS bucket name
-            filename: `${Date.now()}-blogApp-${file.originalname}`
-        });
-    });
-}
-
-        // return {
-        //     bucketName: 'fs',
-        //     filename: `${Date.now()}-blogApp-${file.originalname}`
-        // };
-    
-
-})
+// Simple disk storage (more reliable than GridFS)
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, path.join(__dirname, '../uploads/')); // Store in uploads folder
+    },
+    filename: (req, file, cb) => {
+        const uniqueName = `${Date.now()}-blogApp-${file.originalname}`;
+        cb(null, uniqueName);
+    }
+});
 
 // export default  multer({ storage });
 

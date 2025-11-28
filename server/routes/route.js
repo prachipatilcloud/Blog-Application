@@ -1,10 +1,9 @@
 import express from 'express';
 
-import { signupUser,loginUser }from '../controller/user-controller.js'
+import { signupUser,loginUser,logoutUser}from '../controller/user-controller.js'
 import { uploadImage,getImage } from '../controller/image-controller.js';
 import { createPost, getAllPosts, getPost, updatePost, deletePost } from '../controller/post-controller.js';
 import { authenticateToken } from '../controller/jwt-controller.js';
-import { logoutUser } from '../controller/user-controller.js';
 import { newComment,getComments, deleteComment } from '../controller/comment-controller.js';
 
 import upload from '../middleware/upload.js';
@@ -18,14 +17,14 @@ router.post('/logout', logoutUser);
 router.post('/file/upload', upload.single('file'), uploadImage);
 router.get('/file/:filename', getImage);
 
-router.post('/create' ,createPost);
+router.post('/create' ,authenticateToken,createPost);
 router.get('/posts', getAllPosts);
 router.get('/post/:id', getPost);
-router.put('/update/:id', updatePost);
+router.put('/update/:id', authenticateToken,updatePost);
 router.delete('/delete/:id', authenticateToken, deletePost);
 
-router.post('/comment/new', newComment);
+router.post('/comment/new', authenticateToken,newComment);
 router.get('/comments/:id', getComments);
-router.delete('/comment/delete/:id', deleteComment);
+router.delete('/comment/delete/:id', authenticateToken,deleteComment);
 
 export default router;
