@@ -1,36 +1,65 @@
 
 import Post from '../model/post.js';
 
-
 export const createPost = async (request, response) => {
     try {
         if (!request.body.picture) {
-            return response.status(400).json({ msg: 'Picture is required' });
+            return response.status(400).json({ 
+                success: false, 
+                message: 'Picture is required' 
+            });
         }
 
-        const post = new Post(request.body);
+        const { id: userId, username } = request.user;
+
+        const postData = {
+            ...request.body,
+            username: username,
+            userId: userId,
+            createdDate: new Date()
+        };
+
+        const post = new Post(postData);
         await post.save();
 
-        response.status(200).json({ msg: 'Post created successfully', post , success: true});
+        response.status(200).json({ 
+            success: true,
+            message: 'Post created successfully', 
+            data: { post }
+        });
     } catch (error) {
-        return response.status(400).json({ msg: 'Error creating post', error });
+        console.error('Create Post Error:', error);
+        return response.status(400).json({ 
+            success: false,
+            message: 'Error creating post', 
+            error: error.message 
+        });
     }
 };
 
 export const getAllPosts = async (request, response) => {
-    let category = request.query.category;
-    let posts;
-    try{
-        if (category){
+    try {
+        const category = request.query.category;
+        let posts;
+        
+        if (category) {
             posts = await Post.find({ categories: category });
-            return response.status(200).json(posts);
-        }else{
+        } else {
             posts = await Post.find({});
         }
 
-        return response.status(200).json(posts);
-    }catch (error){
-        return response.status(500).json({ msg: error.message});
+        return response.status(200).json({
+            success: true,
+            message: 'Posts retrieved successfully',
+            data: { posts }
+        });
+    } catch (error) {
+        console.error('Get Posts Error:', error);
+        return response.status(500).json({ 
+            success: false,
+            message: 'Error retrieving posts',
+            error: error.message 
+        });
     }
 }
 
@@ -38,9 +67,25 @@ export const getPost = async (request, response) => {
     try {
         const post = await Post.findById(request.params.id);
 
-        return response.status(200).json(post);
+        if (!post) {
+            return response.status(404).json({
+                success: false,
+                message: 'Post not found'
+            });
+        }
+
+        return response.status(200).json({
+            success: true,
+            message: 'Post retrieved successfully',
+            data: { post }
+        });
     } catch (error) {
-        return response.status(500).json({ msg: error.message });
+        console.error('Get Post Error:', error);
+        return response.status(500).json({ 
+            success: false,
+            message: 'Error retrieving post',
+            error: error.message 
+        });
     }
 }
 
@@ -48,17 +93,45 @@ export const updatePost = async (request, response) => {
     try {
         const post = await Post.findById(request.params.id);
 
-        if(!post){
-            return response.status(404).json({ msg: 'Post not found' });
+        if (!post) {
+            return response.status(404).json({ 
+                success: false,
+                message: 'Post not found' 
+            });
         }
 
-        await Post.findByIdAndUpdate(request.params.id, {
-            $set: request.body,
-        });
+        if (post.username !== request.user.username) {
+            return response.status(403).json({ 
+                success: false,
+                message: 'Unauthorized: You can only update your own posts' 
+            });
+        }
 
-        return response.status(200).json({ msg: 'Post updated successfully', success: true });
+        const updateData = {
+            ...request.body,
+            username: post.username,
+            userId: post.userId,
+            createdDate: post.createdDate
+        };
+
+        const updatedPost = await Post.findByIdAndUpdate(
+            request.params.id,
+            { $set: updateData },
+            { new: true }
+        );
+
+        return response.status(200).json({ 
+            success: true,
+            message: 'Post updated successfully',
+            data: { post: updatedPost }
+        });
     } catch (error) {
-        return response.status(500).json({ msg: error.message });
+        console.error('Update Post Error:', error);
+        return response.status(500).json({ 
+            success: false,
+            message: 'Error updating post',
+            error: error.message 
+        });
     }
 }
 
@@ -66,14 +139,33 @@ export const deletePost = async (request, response) => {
     try {
         const post = await Post.findById(request.params.id);
 
-        if(!post){
-            return response.status(404).json({ msg: 'Post not found' });
+        if (!post) {
+            return response.status(404).json({ 
+                success: false,
+                message: 'Post not found' 
+            });
         }
 
-        await Post.findByIdAndDelete(request.params.id);  // ✅ Correct method
+        // Check if user owns this post
+        if (post.username !== request.user.username) {
+            return response.status(403).json({ 
+                success: false,
+                message: 'Unauthorized: You can only delete your own posts' 
+            });
+        }
 
-        return response.status(200).json({ msg: 'Post deleted successfully', success: true });
+        await Post.findByIdAndDelete(request.params.id);
+
+        return response.status(200).json({ 
+            success: true,
+            message: 'Post deleted successfully'
+        });
     } catch (error) {
-        return response.status(500).json({ msg: error.message });
+        console.error('Delete Post Error:', error);
+        return response.status(500).json({ 
+            success: false,
+            message: 'Error deleting post',
+            error: error.message 
+        });
     }
 }

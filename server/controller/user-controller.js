@@ -9,16 +9,15 @@ dotenv.config();
 
 export const signupUser = async(request, response) => {
     try {
-        // const salt = await bcrypt.genSalt();
-        const existingUser = await User.findOne({ username: request.body.username });
+        const existingUser = await User.findOne({ email: request.body.email });
         if (existingUser) {
-            return response.status(400).json({ msg: 'Username already exists' });
+            return response.status(400).json({ msg: 'email already exists' });
         }
-        const hashedPassword = await bcrypt.hash(request.body.password, 10);
+        const hashedPassword = await bcrypt.hash(request.body.password, 15);
 
         const user ={ 
             username: request.body.username, 
-            name: request.body.name, 
+            email: request.body.email, 
             password: hashedPassword 
         };
 
@@ -31,75 +30,61 @@ export const signupUser = async(request, response) => {
     }
 }
 
-// export const loginUser = async(request, response) => {
-//     let user = await User.findOne({username: request.body.username});
-//     if(!user){
-//         return response.status(400).json({ msg: 'User not found' });
-//     }
-//     try{
-//         let match = await bcrypt.compare(request.body.password, user.password);
-//         if(match){
-//             // return response.status(200).json({ msg: 'Login successfull' });
-//             const accessToken = jwt.sign(user.toJSon(), process.env.ACCESS_SECRET_KEY, { expiresIn: '15m' });
-//             const refreshToken = jwt.sign(user.toJSON(), process.env.REFRESH_SECRET_KEY);
-
-//             const newToken = new Token({ token: refreshToken })
-//             await newToken.save();
-
-//             return response.status(200).json({
-//                 accessToken: accessToken, 
-//                 refreshToken: refreshToken,
-//                 name: user.name,
-//                 username: user.username 
-//             });
-
-//         }
-//         else{
-//             return response.status(400).json({ msg: 'Invalid credentials' });
-//         }
-//     }
-//     catch(error){
-//         return response.status(500).json({ msg: 'Error while logging in the user' })
-//     }
-
-
 
 export const loginUser = async (request, response) => {
     try {
-        const { username, password } = request.body;
+        const { email, password } = request.body;
 
-        // Check if the user exists
-        const user = await User.findOne({ username });
+        const user = await User.findOne({ email });
         if (!user) {
             return response.status(400).json({ msg: 'User not found' });
         }
 
-        // Check if the password is provided
         if (!password) {
             return response.status(400).json({ msg: 'Password is required' });
         }
 
-        // Compare password
         const match = await bcrypt.compare(password, user.password);
         if (!match) {
             return response.status(400).json({ msg: 'Invalid credentials' });
         }
 
-        // Create JWT tokens with limited user data
         const payload = { id: user._id, username: user.username };
-        const accessToken = jwt.sign(payload, process.env.ACCESS_SECRET_KEY, { expiresIn: '1D' });
+        const accessToken = jwt.sign(payload, process.env.ACCESS_SECRET_KEY, { expiresIn: '15m' });
         const refreshToken = jwt.sign(payload, process.env.REFRESH_SECRET_KEY);
 
-        // Save refresh token in the database
-        const newToken = new Token({ token: refreshToken });
+        
+        const newToken = new Token({ 
+            token: refreshToken,
+            userId: user._id ,
+            expiresAt: new Date(Date.now() + 7*24*60*60*1000) });
         await newToken.save();
 
+        
+        response.cookie('accessToken', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 15 * 60 * 1000
+        });
+
+        response.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
         return response.status(200).json({
-            accessToken,
-            refreshToken,
-            name: user.name,
-            username: user.username,
-            newToken
+            success: true,
+            message: 'Login successful',
+            data: {
+                user: {
+                    id: user._id,
+                    username: user.username,
+                    email: user.email
+                }
+            }
         });
 
     } catch (error) {
@@ -110,15 +95,35 @@ export const loginUser = async (request, response) => {
 
 export const logoutUser = async (request, response) => {
     try {
-        response.clearCookie('refreshToken', {
+       
+        const refreshToken = request.cookies?.refreshToken || request.body.refreshToken;
+        
+        if (refreshToken) {
+            await Token.findOneAndDelete({ token: refreshToken });
+        }
+        
+        response.clearCookie('accessToken', {
             httpOnly: true,
-            secure: true, // Set to true if using HTTPS
-            sameSite: 'Strict'
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict'
         });
 
-        return response.status(200).json({ msg: 'Logout successful' });
+        response.clearCookie('refreshToken', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict'
+        });
+
+        return response.status(200).json({ 
+            success: true,
+            message: 'Logout successful' 
+        });
     } catch (error) {
-        return response.status(500).json({ msg: 'Error while logging out' });
+        console.error('Logout Error:', error);
+        return response.status(500).json({ 
+            success: false,
+            message: 'Error while logging out' 
+        });
     }
 };
 

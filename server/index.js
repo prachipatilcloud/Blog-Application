@@ -3,19 +3,25 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import Connection from './database/db.js';
 import Router from './routes/route.js'
 
 dotenv.config();
 
-
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 import cookieParser from 'cookie-parser';
 app.use(cookieParser());
 
 app.use(cors());
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Basic health check route
 app.get('/', (req, res) => {

@@ -1,45 +1,69 @@
-import grid from 'gridfs-stream';
-import mongoose from 'mongoose';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const PORT = process.env.PORT || 8000;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
+const PORT = process.env.PORT || 8000;
 const url = `http://localhost:${PORT}`;
 
-let gfs, gridfsBucket;
-const conn = mongoose.connection;
-conn.once('open', () => {
-    gridfsBucket = new mongoose.mongo.GridFSBucket(conn.db, {
-        bucketName: 'fs'
-    });
-    gfs = grid(conn.db, mongoose.mongo);
-    gfs.collection('fs');
-})
-
-
-export const uploadImage =  (request, response) => {
+export const uploadImage = (request, response) => {
     if (!request.file) {
-        return response.status(404).json({ msg: "File not found" });
-        
+        return response.status(400).json({ 
+            success: false,
+            message: "No file uploaded" 
+        });
     }
 
     const imageUrl = `${url}/file/${request.file.filename}`;
-    return response.status(200).json({ imageUrl: imageUrl });
+    
+    return response.status(200).json({ 
+        success: true,
+        message: "Image uploaded successfully",
+        data: {
+            filename: request.file.filename,
+            imageUrl: imageUrl
+        }
+    });
 }
 
-export const getImage =  async(request, response) => {
+export const getImage = (request, response) => {
     try {
-        const file = await gfs.files.findOne({ filename: request.params.filename });
+        const filename = request.params.filename;
+        const filePath = path.join(__dirname, '../uploads/', filename);
 
-        if (!file) {
-            return response.status(404).json({ msg: "File not found" });
+        // Check if file exists
+        if (!fs.existsSync(filePath)) {
+            return response.status(404).json({ 
+                success: false,
+                message: "Image not found" 
+            });
         }
 
-        const readStream = gridfsBucket.openDownloadStreamByName(file._id);
+        // Get file extension to set proper content type
+        const ext = path.extname(filename).toLowerCase();
+        const contentType = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.webp': 'image/webp'
+        }[ext] || 'image/jpeg';
+
+        response.setHeader('Content-Type', contentType);
+        
+        // Stream the file
+        const readStream = fs.createReadStream(filePath);
         readStream.pipe(response);
     } catch (error) {
-        return response.status(500).json({ msg: error.message });
+        console.error('Get Image Error:', error);
+        return response.status(500).json({ 
+            success: false,
+            message: "Error retrieving image",
+            error: error.message 
+        });
     }
 }
