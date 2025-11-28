@@ -3,11 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-
-
-
 export const authenticateToken = (request, response, next) => {
-    // Try to get token from cookies first, then fallback to Authorization header
     let token = request.cookies?.accessToken;
     
     if (!token) {
@@ -15,7 +11,6 @@ export const authenticateToken = (request, response, next) => {
         token = authHeader && authHeader.split(' ')[1];
     }
 
-    // Only log in development mode for security
     if (process.env.NODE_ENV === 'development') {
         console.log("Received Token:", token ? 'Token present' : 'No token');
     }
@@ -31,7 +26,6 @@ export const authenticateToken = (request, response, next) => {
         if (error) {
             console.error("JWT Verification Error:", error.message);
             
-            // Different messages for different error types
             let message = 'Invalid token';
             if (error.name === 'TokenExpiredError') {
                 message = 'Token has expired';

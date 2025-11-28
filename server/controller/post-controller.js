@@ -1,7 +1,6 @@
 
 import Post from '../model/post.js';
 
-
 export const createPost = async (request, response) => {
     try {
         if (!request.body.picture) {
@@ -11,14 +10,12 @@ export const createPost = async (request, response) => {
             });
         }
 
-        
         const { id: userId, username } = request.user;
 
-       
         const postData = {
             ...request.body,
-            username: username,  
-            userId: userId,      
+            username: username,
+            userId: userId,
             createdDate: new Date()
         };
 
@@ -103,7 +100,6 @@ export const updatePost = async (request, response) => {
             });
         }
 
-        // Check if user owns this post
         if (post.username !== request.user.username) {
             return response.status(403).json({ 
                 success: false,
@@ -111,12 +107,11 @@ export const updatePost = async (request, response) => {
             });
         }
 
-        // Update post with new data but keep original user info
         const updateData = {
             ...request.body,
-            username: post.username, // Keep original owner
-            userId: post.userId,     // Keep original userId
-            createdDate: post.createdDate // Keep original creation date
+            username: post.username,
+            userId: post.userId,
+            createdDate: post.createdDate
         };
 
         const updatedPost = await Post.findByIdAndUpdate(

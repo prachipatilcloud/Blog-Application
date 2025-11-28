@@ -1,19 +1,15 @@
 
 import Comment from '../model/comment.js';
 
-
-
 export const newComment = async (request, response) => {
     try {
-        // Get authenticated user info from JWT token
         const { id: userId, username } = request.user;
 
-        // Create comment with authenticated user's data
         const commentData = {
             ...request.body,
-            name: username,     // Use authenticated user's username
-            userId: userId,     // Add userId for better relationships
-            date: new Date()    // Server timestamp
+            name: username,
+            userId: userId,
+            date: new Date()
         };
 
         const comment = new Comment(commentData);
@@ -64,7 +60,6 @@ export const deleteComment = async (request, response) => {
             });
         }
 
-        // Check if user owns this comment
         if (comment.name !== request.user.username) {
             return response.status(403).json({
                 success: false,

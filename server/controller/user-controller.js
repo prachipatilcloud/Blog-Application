@@ -9,7 +9,6 @@ dotenv.config();
 
 export const signupUser = async(request, response) => {
     try {
-        // const salt = await bcrypt.genSalt();
         const existingUser = await User.findOne({ email: request.body.email });
         if (existingUser) {
             return response.status(400).json({ msg: 'email already exists' });
@@ -36,48 +35,44 @@ export const loginUser = async (request, response) => {
     try {
         const { email, password } = request.body;
 
-        // Check if the user exists
         const user = await User.findOne({ email });
         if (!user) {
             return response.status(400).json({ msg: 'User not found' });
         }
 
-        // Check if the password is provided
         if (!password) {
             return response.status(400).json({ msg: 'Password is required' });
         }
 
-        // Compare password
         const match = await bcrypt.compare(password, user.password);
         if (!match) {
             return response.status(400).json({ msg: 'Invalid credentials' });
         }
 
-        // Create JWT tokens with limited user data
         const payload = { id: user._id, username: user.username };
         const accessToken = jwt.sign(payload, process.env.ACCESS_SECRET_KEY, { expiresIn: '15m' });
         const refreshToken = jwt.sign(payload, process.env.REFRESH_SECRET_KEY);
 
-        // Save refresh token in the database
+        
         const newToken = new Token({ 
             token: refreshToken,
             userId: user._id ,
-            expiresAt: new Date(Date.now() + 7*24*60*60*1000) }); // Expires in 7 days
+            expiresAt: new Date(Date.now() + 7*24*60*60*1000) });
         await newToken.save();
 
-        // Set tokens as HTTP cookies
+        
         response.cookie('accessToken', accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 15 * 60 * 1000 // 15 minutes
+            maxAge: 15 * 60 * 1000
         });
 
         response.cookie('refreshToken', refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
         return response.status(200).json({
@@ -100,15 +95,13 @@ export const loginUser = async (request, response) => {
 
 export const logoutUser = async (request, response) => {
     try {
-        // Get refresh token from cookie or request body
+       
         const refreshToken = request.cookies?.refreshToken || request.body.refreshToken;
         
         if (refreshToken) {
-            // Delete refresh token from database
             await Token.findOneAndDelete({ token: refreshToken });
         }
         
-        // Clear both tokens from cookies
         response.clearCookie('accessToken', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
